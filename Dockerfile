@@ -12,7 +12,7 @@ FROM eclipse-temurin:21-jdk AS runtime
  
 WORKDIR /app
  
-COPY --from=build /app/target/prd-backend-reporte-0.0.1-SNAPSHOT.jar /app/app.jar
+COPY --from=build /app/target/prd-backend-reportes-0.0.1-SNAPSHOT.jar /app/app.jar
 COPY builder/wallet /app/wallet
  
 # Placeholder de las variables de entorno para ser configuradas en tiempo de ejecución
