@@ -5,6 +5,7 @@ import com.optimus.prdbackendreportes.domain.repositories.IDeliveryReceiptReposi
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SqlOutParameter;
 import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -40,31 +42,26 @@ public class DeliveryReceiptRepository implements IDeliveryReceiptRepository {
 
         SimpleJdbcCall jdbcCall = createProcedureCall("RPT_CONSTANCIA_ENTREGA");
 
-        Map<String, Object> result;
+        // Usar MapSqlParameterSource para evitar problemas con valores nulos
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("p_schema", schema)
+                .addValue("p_cod_cuenta", account)
+                .addValue("p_fec_proceso", java.sql.Date.valueOf(processDate))
+                .addValue("p_lot_proceso", processBatch);
 
+        // Manejar orderNumber correctamente
         if (orderNumber != null && !orderNumber.isEmpty()) {
-            result = jdbcCall.execute(
-                    Map.of(
-                            "p_schema", schema,
-                            "p_cod_cuenta", account,
-                            "p_fec_proceso", java.sql.Date.valueOf(processDate),
-                            "p_lot_proceso", processBatch,
-                            "p_nro_orden", orderNumber
-                    )
-            );
+            paramSource.addValue("p_nro_orden", orderNumber);
         } else {
-            result = jdbcCall.execute(
-                    Map.of(
-                            "p_schema", schema,
-                            "p_cod_cuenta", account,
-                            "p_fec_proceso", java.sql.Date.valueOf(processDate),
-                            "p_lot_proceso", processBatch,
-                            "p_nro_orden", ""
-                    )
-            );
+            paramSource.addValue("p_nro_orden", "");
         }
 
-        return (List<DeliveryReceiptItem>) result.get("p_resultado");
+        Map<String, Object> result = jdbcCall.execute(paramSource);
+
+        @SuppressWarnings("unchecked")
+        List<DeliveryReceiptItem> items = (List<DeliveryReceiptItem>) result.get("p_resultado");
+
+        return items != null ? items : new ArrayList<>();
     }
 
     @Override
@@ -78,7 +75,7 @@ public class DeliveryReceiptRepository implements IDeliveryReceiptRepository {
         // Este método usaría un procedimiento simplificado que sólo cuenta registros
         // Para el ejemplo, usaremos el mismo procedimiento pero contaremos los resultados
         List<DeliveryReceiptItem> data = getDeliveryReceiptData(account, processDate, processBatch, orderNumber, schema);
-        return data.size();
+        return data != null ? data.size() : 0;
     }
 
     private SimpleJdbcCall createProcedureCall(String procedureName) {
@@ -101,6 +98,7 @@ public class DeliveryReceiptRepository implements IDeliveryReceiptRepository {
     private static class DeliveryReceiptRowMapper implements RowMapper<DeliveryReceiptItem> {
         @Override
         public DeliveryReceiptItem mapRow(ResultSet rs, int rowNum) throws SQLException {
+            // Verificación de nulos para evitar NullPointerException
             return new DeliveryReceiptItem(
                     rs.getString("COD_CUENTA"),
                     rs.getString("TIP_ORDEN"),
@@ -111,8 +109,8 @@ public class DeliveryReceiptRepository implements IDeliveryReceiptRepository {
                     rs.getString("DIREC_ENT"),
                     rs.getString("REF_DIREC_ENT"),
                     rs.getString("NRO_TLF"),
-                    rs.getTimestamp("FEC_REGISTRO").toLocalDateTime(),
-                    rs.getTimestamp("FEC_DESPACHO").toLocalDateTime(),
+                    rs.getTimestamp("FEC_REGISTRO") != null ? rs.getTimestamp("FEC_REGISTRO").toLocalDateTime() : null,
+                    rs.getTimestamp("FEC_DESPACHO") != null ? rs.getTimestamp("FEC_DESPACHO").toLocalDateTime() : null,
                     rs.getString("COD_PRODUCTO"),
                     rs.getString("DES_PRODUCTO"),
                     rs.getInt("CTD_PICK")
