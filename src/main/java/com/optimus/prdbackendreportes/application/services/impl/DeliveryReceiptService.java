@@ -12,14 +12,13 @@ import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
 import net.sf.jasperreports.engine.JasperPrint;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.optimus.prdbackendreportes.utils.constants.ReportConstants.*;
 
@@ -32,6 +31,7 @@ import static com.optimus.prdbackendreportes.utils.constants.ReportConstants.*;
 public class DeliveryReceiptService implements IDeliveryReceiptService {
 
     private final IDeliveryReceiptRepository repository;
+    private static final int MAX_ITEMS_PER_PAGE = 34;
 
     @Override
     public byte[] generateDeliveryReceiptReport(DeliveryReceiptRequest request) {
@@ -49,11 +49,18 @@ public class DeliveryReceiptService implements IDeliveryReceiptService {
                 throw new NoDataFoundException(NO_DATA_FOUND);
             }
 
+            // Precalcular la cantidad de páginas necesarias para cada orden
+            Map<String, Integer> totalPagesMap = calculateTotalPagesPerOrder(reportData);
+
+            // Log para depuración
+            totalPagesMap.forEach((order, pages) ->
+                    log.info("Orden: {}, Páginas calculadas: {}", order, pages));
+
             // Cargar template del reporte
             InputStream reportTemplate = getResource(DELIVERY_RECEIPT_TEMPLATE);
             InputStream banner = getResource(COMPANY_BANNER);
 
-            // Crear fuente de datos para JasperReports (ahora la clase ya tiene getters estándar)
+            // Crear fuente de datos para JasperReports
             JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(reportData);
 
             // Configurar parámetros
@@ -63,6 +70,8 @@ public class DeliveryReceiptService implements IDeliveryReceiptService {
             parameters.put("processDate", java.sql.Date.valueOf(request.processDate()));
             parameters.put("processBatch", request.processBatch());
             parameters.put("orderNumber", request.orderNumber());
+            parameters.put("totalPagesMap", totalPagesMap);
+            parameters.put("maxItemsPerPage", MAX_ITEMS_PER_PAGE);
 
             // Agregar parámetros de cabecera desde el primer elemento del reporte
             if (!reportData.isEmpty()) {
@@ -89,6 +98,32 @@ public class DeliveryReceiptService implements IDeliveryReceiptService {
             log.error("Error al generar reporte de constancia de entrega", e);
             throw new ReportGenerationException(REPORT_GENERATION_ERROR + e.getMessage());
         }
+    }
+
+    /**
+     * Calcula el número total de páginas necesarias para cada orden
+     * basado en la cantidad de productos y el número máximo de productos por página
+     */
+    private Map<String, Integer> calculateTotalPagesPerOrder(List<DeliveryReceiptItem> items) {
+        // Agrupar items por número de orden
+        Map<String, List<DeliveryReceiptItem>> itemsByOrder = items.stream()
+                .collect(Collectors.groupingBy(DeliveryReceiptItem::getOrderNumber));
+
+        // Calcular páginas para cada orden
+        Map<String, Integer> totalPagesMap = new HashMap<>();
+
+        for (Map.Entry<String, List<DeliveryReceiptItem>> entry : itemsByOrder.entrySet()) {
+            String orderNumber = entry.getKey();
+            int itemCount = entry.getValue().size();
+            int totalPages = (int) Math.ceil((double) itemCount / MAX_ITEMS_PER_PAGE);
+            totalPagesMap.put(orderNumber, Math.max(1, totalPages)); // Mínimo 1 página
+
+            // Log para depuración
+            log.info("Orden: {}, Items: {}, Páginas calculadas: {}",
+                    orderNumber, itemCount, totalPages);
+        }
+
+        return totalPagesMap;
     }
 
     @Override
