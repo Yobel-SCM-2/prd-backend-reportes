@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * Manejador de excepciones para reportes
  */
 @RestControllerAdvice
-public class DeliveryReceiptExceptionHandler {
+public class GlobalExceptionHandler {
 
     /**
      * Maneja excepciones cuando no se encuentran datos
