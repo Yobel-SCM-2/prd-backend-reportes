@@ -28,7 +28,7 @@ import static com.optimus.prdbackendreportes.utils.constants.ReportConstants.*;
 @Service
 @RequiredArgsConstructor
 @Log4j2
-public class DeliveryReceiptService implements IDeliveryReceiptService {
+public class DeliveryReceiptServiceImpl implements IDeliveryReceiptService {
 
     private final IDeliveryReceiptRepository repository;
     private static final int MAX_ITEMS_PER_PAGE = 34;
