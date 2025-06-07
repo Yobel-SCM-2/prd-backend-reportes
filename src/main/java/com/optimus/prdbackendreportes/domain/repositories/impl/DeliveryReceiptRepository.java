@@ -2,6 +2,7 @@ package com.optimus.prdbackendreportes.domain.repositories.impl;
 
 import com.optimus.prdbackendreportes.domain.models.dto.response.DeliveryReceiptItem;
 import com.optimus.prdbackendreportes.domain.repositories.IDeliveryReceiptRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SqlOutParameter;
 import org.springframework.jdbc.core.SqlParameter;
@@ -18,19 +19,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static com.optimus.prdbackendreportes.utils.constants.ReportConstants.PACKAGE_NAME;
+
 /**
  * Implementación del repositorio que se conecta a la base de datos Oracle
  * para obtener datos de constancias de entrega.
  */
 @Repository
+@RequiredArgsConstructor
 public class DeliveryReceiptRepository implements IDeliveryReceiptRepository {
 
     private final DataSource dataSource;
-    private static final String PACKAGE_NAME = "PKG_PRD_REPORTES";
-
-    public DeliveryReceiptRepository(DataSource dataSource) {
-        this.dataSource = dataSource;
-    }
 
     @Override
     public List<DeliveryReceiptItem> getDeliveryReceiptData(
@@ -61,7 +60,7 @@ public class DeliveryReceiptRepository implements IDeliveryReceiptRepository {
         @SuppressWarnings("unchecked")
         List<DeliveryReceiptItem> items = (List<DeliveryReceiptItem>) result.get("p_resultado");
 
-        return items != null ? items : new ArrayList<>();
+        return items != null ? items : List.of();
     }
 
     @Override

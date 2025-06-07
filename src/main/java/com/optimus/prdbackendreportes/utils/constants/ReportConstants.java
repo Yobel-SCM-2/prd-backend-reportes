@@ -12,6 +12,8 @@ public class ReportConstants {
     public static final String NO_DATA_FOUND = "No se encontraron datos para generar el reporte";
     public static final String REPORT_GENERATION_ERROR = "Error al generar el reporte";
 
+    public static final String PACKAGE_NAME = "PKG_PRD_REPORTES";
+
     private ReportConstants() {
         // Constructor privado para evitar instanciación
     }
