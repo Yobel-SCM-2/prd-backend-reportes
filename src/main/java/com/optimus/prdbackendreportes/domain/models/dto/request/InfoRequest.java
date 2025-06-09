@@ -3,7 +3,7 @@ package com.optimus.prdbackendreportes.domain.models.dto.request;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
-public record InfoCabeceraRequest(
+public record InfoRequest(
         @NotBlank(message = "Account cannot be blank")
         String account,
         @NotBlank(message = "Process date cannot be blank")
