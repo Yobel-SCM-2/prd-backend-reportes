@@ -1,9 +1,11 @@
 package com.optimus.prdbackendreportes.application.services.interfaces;
 
 import com.optimus.prdbackendreportes.domain.models.dto.request.InfoCabeceraRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import com.optimus.prdbackendreportes.domain.models.dto.response.FileInfoResponse;
 
 public interface IRecojosProcesadosService {
 
-    void generateInfoCabeceraReport(HttpServletResponse response, InfoCabeceraRequest request) throws Exception;
+    byte[] generateInfoCabeceraReport(InfoCabeceraRequest request);
+
+    FileInfoResponse getFileInfo(InfoCabeceraRequest request);
 }
