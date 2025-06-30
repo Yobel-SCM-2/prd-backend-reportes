@@ -1,4 +1,4 @@
-package com.optimus.prdbackendreportes.domain.repository;
+package com.optimus.prdbackendreportes.domain.port.output;
 
 import com.optimus.prdbackendreportes.domain.model.entity.DetailInfo;
 import com.optimus.prdbackendreportes.domain.model.entity.HeaderInfo;
