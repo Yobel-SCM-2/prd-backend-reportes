@@ -12,6 +12,22 @@ public class ReportConstants {
 
     public static final String PACKAGE_NAME = "PKG_PRD_REPORTES";
 
+    // Excel report headers
+    public static final String[] HEADER_HEADERS = {
+            "Código de cuenta", "Fecha de Proceso", "Lote de Proceso", "Zona de Consultora",
+            "Fecha de Emisión", "Número de Boleta", "Secuencia de Boleta", "Código de Consultora",
+            "Nombre de Consultora", "Total de Unidades", "Número de Pedido Relacionado",
+            "Secuencia de Pedido Relacionado"
+    };
+
+    public static final String[] DETAIL_HEADERS = {
+            "Código de cuenta", "Fecha de Proceso", "Lote de Proceso", "Zona de Consultora",
+            "Fecha de Emisión", "Número de Boleta", "Secuencia de Boleta", "Código de Consultora",
+            "Nombre de Consultora", "Total de Unidades", "Código de Transacción Pedido Relacionado",
+            "Número de Pedido Relacionado", "Secuencia de Pedido Relacionado", "Código de Producto",
+            "Descripción de Producto", "Unidades a Recoger", "Campaña de Atención", "Tipo de Atención"
+    };
+
     private ReportConstants() {
         // Private constructor to prevent instantiation
     }

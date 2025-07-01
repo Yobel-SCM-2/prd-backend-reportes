@@ -3,12 +3,14 @@ package com.optimus.prdbackendreportes.infrastructure.adapter.input.rest.control
 import com.optimus.prdbackendreportes.application.port.input.ProcessedPickupsUseCase;
 import com.optimus.prdbackendreportes.domain.model.entity.DetailInfo;
 import com.optimus.prdbackendreportes.domain.model.entity.HeaderInfo;
+import com.optimus.prdbackendreportes.domain.model.enums.ReportFormat;
 import com.optimus.prdbackendreportes.domain.model.valueobject.Account;
 import com.optimus.prdbackendreportes.domain.model.valueobject.ProcessBatch;
 import com.optimus.prdbackendreportes.domain.model.valueobject.ProcessDate;
+import com.optimus.prdbackendreportes.domain.port.output.ReportGenerator;
 import com.optimus.prdbackendreportes.infrastructure.adapter.input.rest.dto.request.InfoRequest;
 import com.optimus.prdbackendreportes.infrastructure.adapter.input.rest.dto.response.FileInfoResponse;
-import com.optimus.prdbackendreportes.infrastructure.adapter.output.report.ExcelReportGenerator;
+import com.optimus.prdbackendreportes.infrastructure.adapter.output.report.ReportGeneratorFactory;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -26,8 +28,8 @@ import java.util.List;
 @CrossOrigin
 public class ProcessedPickupsController {
 
-    private final ProcessedPickupsUseCase recojosProcesadosUseCase;
-    private final ExcelReportGenerator excelGenerator;
+    private final ProcessedPickupsUseCase processedPickupsUseCase;
+    private final ReportGeneratorFactory reportGeneratorFactory;
 
     @GetMapping("/export-info-cabecera")
     public ResponseEntity<byte[]> exportInfoCabecera(
@@ -36,18 +38,20 @@ public class ProcessedPickupsController {
         log.info("Generating cabecera report for account: {}, processDate: {}, processBatch: {}",
                 request.account(), request.processDate(), request.processBatch());
 
-        List<HeaderInfo> data = recojosProcesadosUseCase.generateHeaderInfoData(
+        List<HeaderInfo> data = processedPickupsUseCase.generateHeaderInfoData(
                 Account.of(request.account()),
                 ProcessDate.of(request.processDate()),
                 ProcessBatch.of(request.processBatch())
         );
 
-        byte[] reportData = excelGenerator.generateHeaderInfoReport(data, request);
-        FileInfoResponse fileInfo = createHeaderFileInfo(request);
+        ReportGenerator generator = reportGeneratorFactory.getGenerator(ReportFormat.EXCEL);
 
+        byte[] reportData = generator.generateHeaderInfoReport(data, request, ReportFormat.EXCEL);
+
+        FileInfoResponse fileInfo = createHeaderFileInfo(request);
         HttpHeaders headers = createExcelHeaders(fileInfo);
 
-        log.info("Cabecera report generated successfully. File: {}, Size: {} bytes",
+        log.info("Header report generated successfully. File: {}, Size: {} bytes",
                 fileInfo.fileName(), reportData.length);
 
         return ResponseEntity.ok().headers(headers).body(reportData);
@@ -60,38 +64,40 @@ public class ProcessedPickupsController {
         log.info("Generating detalle report for account: {}, processDate: {}, processBatch: {}",
                 request.account(), request.processDate(), request.processBatch());
 
-        List<DetailInfo> data = recojosProcesadosUseCase.generateDetailInfoData(
+        List<DetailInfo> data = processedPickupsUseCase.generateDetailInfoData(
                 Account.of(request.account()),
                 ProcessDate.of(request.processDate()),
                 ProcessBatch.of(request.processBatch())
         );
 
-        byte[] reportData = excelGenerator.generateDetailInfoReport(data, request);
-        FileInfoResponse fileInfo = createDetailFileInfo(request);
+        ReportGenerator generator = reportGeneratorFactory.getGenerator(ReportFormat.EXCEL);
 
+        byte[] reportData = generator.generateDetailInfoReport(data, request, ReportFormat.EXCEL);
+
+        FileInfoResponse fileInfo = createDetailFileInfo(request);
         HttpHeaders headers = createExcelHeaders(fileInfo);
 
-        log.info("Detalle report generated successfully. File: {}, Size: {} bytes",
+        log.info("Detail report generated successfully. File: {}, Size: {} bytes",
                 fileInfo.fileName(), reportData.length);
 
         return ResponseEntity.ok().headers(headers).body(reportData);
     }
 
     private FileInfoResponse createHeaderFileInfo(InfoRequest request) {
-        String fileName = String.format("InformeRecojos_%s_%s%d.xlsx",
-                request.account(), request.processDate(), request.processBatch());
-        return new FileInfoResponse(fileName, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 0L);
+        String fileName = String.format("InformeRecojos_%s_%s%d%s",
+                request.account(), request.processDate(), request.processBatch(), ReportFormat.EXCEL.getFileExtension());
+        return new FileInfoResponse(fileName, ReportFormat.EXCEL.getMimeType(), 0L);
     }
 
     private FileInfoResponse createDetailFileInfo(InfoRequest request) {
-        String fileName = String.format("InformeRecojosDetalle_%s_%s%d.xlsx",
-                request.account(), request.processDate(), request.processBatch());
-        return new FileInfoResponse(fileName, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 0L);
+        String fileName = String.format("InformeRecojosDetalle_%s_%s%d%s",
+                request.account(), request.processDate(), request.processBatch(), ReportFormat.EXCEL.getFileExtension());
+        return new FileInfoResponse(fileName, ReportFormat.EXCEL.getMimeType(), 0L);
     }
 
     private HttpHeaders createExcelHeaders(FileInfoResponse fileInfo) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentType(MediaType.valueOf(fileInfo.contentType()));
         headers.setContentDispositionFormData("attachment", fileInfo.fileName());
         return headers;
     }
