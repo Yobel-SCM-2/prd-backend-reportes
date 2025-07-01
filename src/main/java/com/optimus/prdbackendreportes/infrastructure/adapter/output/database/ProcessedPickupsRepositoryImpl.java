@@ -103,7 +103,7 @@ public class ProcessedPickupsRepositoryImpl implements ProcessedPickupsRepositor
                         new SqlParameter("p_cod_cuenta", Types.VARCHAR),
                         new SqlParameter("p_fec_proceso", Types.VARCHAR),
                         new SqlParameter("p_lot_proceso", Types.INTEGER),
-                        new SqlOutParameter("p_resultado", Types.REF_CURSOR, mapper.getInfoCabeceraMapper())
+                        new SqlOutParameter("p_resultado", Types.REF_CURSOR, mapper.getHeaderInfoMapper())
                 );
     }
 
@@ -115,7 +115,7 @@ public class ProcessedPickupsRepositoryImpl implements ProcessedPickupsRepositor
                         new SqlParameter("p_cod_cuenta", Types.VARCHAR),
                         new SqlParameter("p_fec_proceso", Types.VARCHAR),
                         new SqlParameter("p_lot_proceso", Types.INTEGER),
-                        new SqlOutParameter("p_resultado", Types.REF_CURSOR, mapper.getInfoDetalleMapper())
+                        new SqlOutParameter("p_resultado", Types.REF_CURSOR, mapper.getDetailInfoMapper())
                 );
     }
 }
