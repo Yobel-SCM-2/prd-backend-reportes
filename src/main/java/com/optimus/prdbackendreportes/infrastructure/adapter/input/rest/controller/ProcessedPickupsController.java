@@ -9,6 +9,7 @@ import com.optimus.prdbackendreportes.domain.model.valueobject.ProcessDate;
 import com.optimus.prdbackendreportes.infrastructure.adapter.input.rest.dto.request.InfoRequest;
 import com.optimus.prdbackendreportes.infrastructure.adapter.input.rest.dto.response.FileInfoResponse;
 import com.optimus.prdbackendreportes.infrastructure.adapter.output.report.ExcelReportGenerator;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpHeaders;
@@ -30,14 +31,10 @@ public class ProcessedPickupsController {
 
     @GetMapping("/export-info-cabecera")
     public ResponseEntity<byte[]> exportInfoCabecera(
-            @RequestParam String account,
-            @RequestParam String processDate,
-            @RequestParam Integer processBatch) {
+            @Valid @ModelAttribute InfoRequest request) {
 
         log.info("Generating cabecera report for account: {}, processDate: {}, processBatch: {}",
-                account, processDate, processBatch);
-
-        InfoRequest request = new InfoRequest(account, processDate, processBatch);
+                request.account(), request.processDate(), request.processBatch());
 
         List<HeaderInfo> data = recojosProcesadosUseCase.generateHeaderInfoData(
                 Account.of(request.account()),
@@ -58,14 +55,10 @@ public class ProcessedPickupsController {
 
     @GetMapping("/export-info-detalle")
     public ResponseEntity<byte[]> exportInfoDetalle(
-            @RequestParam String account,
-            @RequestParam String processDate,
-            @RequestParam Integer processBatch) {
+            @Valid @ModelAttribute InfoRequest request) {
 
         log.info("Generating detalle report for account: {}, processDate: {}, processBatch: {}",
-                account, processDate, processBatch);
-
-        InfoRequest request = new InfoRequest(account, processDate, processBatch);
+                request.account(), request.processDate(), request.processBatch());
 
         List<DetailInfo> data = recojosProcesadosUseCase.generateDetailInfoData(
                 Account.of(request.account()),
