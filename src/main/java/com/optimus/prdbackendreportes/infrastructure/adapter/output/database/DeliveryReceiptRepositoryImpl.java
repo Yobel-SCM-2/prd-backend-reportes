@@ -31,6 +31,9 @@ public class DeliveryReceiptRepositoryImpl implements DeliveryReceiptRepository 
     private final DataSource dataSource;
     private final DeliveryReceiptMapper mapper;
 
+    private volatile SimpleJdbcCall cachedDeliveryReceiptCall;
+    private final Object callInitLock = new Object();
+
     @Override
     public List<DeliveryReceiptItem> findDeliveryReceiptData(Account account, ProcessDate processDate,
                                                              ProcessBatch processBatch, OrderNumber orderNumber, String schema) {
@@ -39,7 +42,7 @@ public class DeliveryReceiptRepositoryImpl implements DeliveryReceiptRepository 
                 account.value(), processDate.value(), processBatch.value(), orderNumber.value());
 
         try {
-            SimpleJdbcCall jdbcCall = createProcedureCall("RPT_CONSTANCIA_ENTREGA");
+            SimpleJdbcCall jdbcCall = getOrCreateDeliveryReceiptCall();
             MapSqlParameterSource paramSource = buildParameterSource(account, processDate, processBatch, orderNumber, schema);
 
             Map<String, Object> result = jdbcCall.execute(paramSource);
@@ -78,6 +81,25 @@ public class DeliveryReceiptRepositoryImpl implements DeliveryReceiptRepository 
         } catch (Exception e) {
             log.error("Error checking data existence", e);
             return false;
+        }
+    }
+
+    private SimpleJdbcCall getOrCreateDeliveryReceiptCall() {
+        if (cachedDeliveryReceiptCall == null) {
+            synchronized (callInitLock) {
+                if (cachedDeliveryReceiptCall == null) {
+                    cachedDeliveryReceiptCall = createProcedureCall("RPT_CONSTANCIA_ENTREGA");
+                    log.debug("Created and cached SimpleJdbcCall for delivery receipt procedure");
+                }
+            }
+        }
+        return cachedDeliveryReceiptCall;
+    }
+
+    public void clearCache() {
+        synchronized (callInitLock) {
+            cachedDeliveryReceiptCall = null;
+            log.info("SimpleJdbcCall cache cleared for DeliveryReceiptRepository");
         }
     }
 

@@ -30,6 +30,10 @@ public class ProcessedPickupsRepositoryImpl implements ProcessedPickupsRepositor
     private final DataSource dataSource;
     private final ProcessedPickupsMapper mapper;
 
+    private volatile SimpleJdbcCall cachedHeaderCall;
+    private volatile SimpleJdbcCall cachedDetailCall;
+    private final Object callInitLock = new Object();
+
     @Override
     public List<HeaderInfo> findHeaderInfo(Account account, ProcessDate processDate, ProcessBatch processBatch) {
 
@@ -37,7 +41,7 @@ public class ProcessedPickupsRepositoryImpl implements ProcessedPickupsRepositor
                 account.value(), processDate.value(), processBatch.value());
 
         try {
-            SimpleJdbcCall jdbcCall = createHeaderCall("RPT_DESCARGAR_INFO_CAB");
+            SimpleJdbcCall jdbcCall = getOrCreateHeaderCall();
             MapSqlParameterSource paramSource = buildParameterSource(account, processDate, processBatch);
 
             Map<String, Object> result = jdbcCall.execute(paramSource);
@@ -66,7 +70,7 @@ public class ProcessedPickupsRepositoryImpl implements ProcessedPickupsRepositor
                 account.value(), processDate.value(), processBatch.value());
 
         try {
-            SimpleJdbcCall jdbcCall = createDetailCall("RPT_DESCARGAR_INFO_DET");
+            SimpleJdbcCall jdbcCall = getOrCreateDetailCall();
             MapSqlParameterSource paramSource = buildParameterSource(account, processDate, processBatch);
 
             Map<String, Object> result = jdbcCall.execute(paramSource);
@@ -85,6 +89,38 @@ public class ProcessedPickupsRepositoryImpl implements ProcessedPickupsRepositor
         } catch (Exception e) {
             log.error("Unexpected error while finding info detalle", e);
             throw new RuntimeException("Error inesperado al consultar detalle", e);
+        }
+    }
+
+    private SimpleJdbcCall getOrCreateHeaderCall() {
+        if (cachedHeaderCall == null) {
+            synchronized (callInitLock) {
+                if (cachedHeaderCall == null) {
+                    cachedHeaderCall = createHeaderCall("RPT_DESCARGAR_INFO_CAB");
+                    log.debug("Created and cached SimpleJdbcCall for header info procedure");
+                }
+            }
+        }
+        return cachedHeaderCall;
+    }
+
+    private SimpleJdbcCall getOrCreateDetailCall() {
+        if (cachedDetailCall == null) {
+            synchronized (callInitLock) {
+                if (cachedDetailCall == null) {
+                    cachedDetailCall = createDetailCall("RPT_DESCARGAR_INFO_DET");
+                    log.debug("Created and cached SimpleJdbcCall for detail info procedure");
+                }
+            }
+        }
+        return cachedDetailCall;
+    }
+
+    public void clearCache() {
+        synchronized (callInitLock) {
+            cachedHeaderCall = null;
+            cachedDetailCall = null;
+            log.info("SimpleJdbcCall cache cleared for ProcessedPickupsRepository");
         }
     }
 

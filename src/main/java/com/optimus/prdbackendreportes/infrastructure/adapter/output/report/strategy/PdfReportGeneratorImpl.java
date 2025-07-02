@@ -7,6 +7,8 @@ import com.optimus.prdbackendreportes.domain.model.entity.HeaderInfo;
 import com.optimus.prdbackendreportes.domain.model.enums.ReportFormat;
 import com.optimus.prdbackendreportes.domain.port.output.ReportGenerator;
 import com.optimus.prdbackendreportes.infrastructure.adapter.input.rest.dto.request.DeliveryReceiptRequest;
+import com.optimus.prdbackendreportes.infrastructure.util.ResourceManager;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import net.sf.jasperreports.engine.JasperExportManager;
 import net.sf.jasperreports.engine.JasperFillManager;
@@ -28,9 +30,12 @@ import static com.optimus.prdbackendreportes.domain.model.constants.ReportConsta
  */
 @Component
 @Log4j2
+@RequiredArgsConstructor
 public class PdfReportGeneratorImpl implements ReportGenerator {
 
     private static final int MAX_ITEMS_PER_PAGE = 34;
+
+    private final ResourceManager resourceManager;
 
     @Override
     public byte[] generateDeliveryReceiptReport(List<DeliveryReceiptItem> data,
@@ -41,23 +46,23 @@ public class PdfReportGeneratorImpl implements ReportGenerator {
 
         try {
             log.info("Generating PDF delivery receipt report for {} items", data.size());
-
             validateInputData(data, deliveryRequest);
 
             Map<String, Integer> totalPagesMap = calculateTotalPagesPerOrder(data);
-            InputStream reportTemplate = loadReportTemplate(DELIVERY_RECEIPT_TEMPLATE);
-            InputStream banner = loadCompanyBanner();
 
-            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(data);
-            Map<String, Object> parameters = buildDeliveryReceiptParameters(
-                    deliveryRequest, data, totalPagesMap, banner);
+            try (InputStream reportTemplate = resourceManager.getResourceAsStream(DELIVERY_RECEIPT_TEMPLATE);
+                 InputStream banner = resourceManager.getResourceAsStream(COMPANY_BANNER)) {
 
-            JasperPrint jasperPrint = JasperFillManager.fillReport(reportTemplate, parameters, dataSource);
-            byte[] pdfBytes = JasperExportManager.exportReportToPdf(jasperPrint);
+                JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(data);
+                Map<String, Object> parameters = buildDeliveryReceiptParameters(
+                        deliveryRequest, data, totalPagesMap, banner);
 
-            log.info("PDF delivery receipt report generated successfully, size: {} bytes", pdfBytes.length);
-            return pdfBytes;
+                JasperPrint jasperPrint = JasperFillManager.fillReport(reportTemplate, parameters, dataSource);
+                byte[] pdfBytes = JasperExportManager.exportReportToPdf(jasperPrint);
 
+                log.info("PDF delivery receipt report generated successfully, size: {} bytes", pdfBytes.length);
+                return pdfBytes;
+            }
         } catch (ReportGenerationException e) {
             throw e;
         } catch (Exception e) {
@@ -110,23 +115,6 @@ public class PdfReportGeneratorImpl implements ReportGenerator {
         if (request == null) {
             throw new ReportGenerationException("Request object cannot be null");
         }
-    }
-
-    private InputStream loadReportTemplate(String templatePath) {
-        InputStream template = getClass().getResourceAsStream(templatePath);
-        if (template == null) {
-            throw new ReportGenerationException("Plantilla de reporte no encontrada: " + templatePath);
-        }
-        return template;
-    }
-
-    private InputStream loadCompanyBanner() {
-        InputStream banner = getClass().getResourceAsStream(COMPANY_BANNER);
-        if (banner == null) {
-            log.warn("Company banner was not found: {}", COMPANY_BANNER);
-            return null;
-        }
-        return banner;
     }
 
     private Map<String, Object> buildDeliveryReceiptParameters(DeliveryReceiptRequest request,
